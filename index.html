@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>City Transport Game 🚌</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Trebuchet MS', 'Arial Rounded MT Bold', sans-serif;
+    background: #5BC8F5;
+    overflow: hidden;
+    width: 100vw; height: 100vh;
+  }
+
+  #game {
+    position: relative;
+    width: 100%; height: 100vh;
+    overflow: hidden;
+  }
+
+  /* SKY */
+  #sky {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 65%;
+    background: linear-gradient(to bottom, #1A8FC4 0%, #6CBFE8 60%, #B8DDEF 100%);
+  }
+
+  /* SUN */
+  #sun {
+    position: absolute; top: 5%; right: 10%;
+    width: 80px; height: 80px;
+    background: #FFD93D;
+    border-radius: 50%;
+    box-shadow: 0 0 0 14px rgba(255,233,128,0.4), 0 0 0 28px rgba(255,233,128,0.2);
+    animation: sunPulse 3s ease-in-out infinite;
+  }
+  @keyframes sunPulse {
+    50% { box-shadow: 0 0 0 20px rgba(255,233,128,0.5), 0 0 0 40px rgba(255,233,128,0.25); }
+  }
+
+  /* SUN RAYS */
+  .ray {
+    position: absolute;
+    top: 5%; right: 10%;
+    width: 80px; height: 80px;
+    animation: rayRotate 12s linear infinite;
+  }
+  .ray::before {
+    content: '';
+    position: absolute;
+    top: -20px; left: 50%;
+    transform: translateX(-50%);
+    width: 4px; height: 16px;
+    background: rgba(255,220,50,0.6);
+    border-radius: 3px;
+    box-shadow:
+      0 100px 0 rgba(255,220,50,0.6),
+      50px 50px 0 rgba(255,220,50,0.6),
+      -50px 50px 0 rgba(255,220,50,0.6),
+      35px -35px 0 rgba(255,220,50,0.6),
+      -35px -35px 0 rgba(255,220,50,0.6),
+      70px 0 0 rgba(255,220,50,0.6),
+      -70px 0 0 rgba(255,220,50,0.6);
+  }
+  @keyframes rayRotate { to { transform: rotate(360deg); } }
+
+  /* CLOUDS */
+  .cloud {
+    position: absolute;
+    background: white;
+    border-radius: 60px;
+    opacity: 0.92;
+  }
+  .cloud::before, .cloud::after {
+    content: '';
+    position: absolute;
+    background: white;
+    border-radius: 50%;
+  }
+  .cloud::before { width: 55%; height: 155%; top: -50%; left: 18%; }
+  .cloud::after  { width: 40%; height: 140%; top: -35%; right: 12%; }
+
+  /* BUILDINGS */
+  #buildings {
+    position: absolute;
+    bottom: 32%;
+    width: 100%;
+    height: 180px;
+    overflow: hidden;
+  }
+  .building {
+    position: absolute;
+    bottom: 0;
+    border-radius: 4px 4px 0 0;
+  }
+  .b-window-row { display: flex; gap: 5px; margin: 7px 7px 0; }
+  .b-win { flex: 1; height: 11px; border-radius: 2px; background: #FFE566; opacity: 0.85; }
+  .b-win.off { background: #1e2d4a; opacity: 0.6; }
+  .antenna {
+    position: absolute;
+    top: -15px; left: 50%;
+    transform: translateX(-50%);
+    width: 3px; height: 15px;
+    background: #888;
+  }
+  .antenna::after {
+    content: '';
+    position: absolute;
+    top: -5px; left: 50%;
+    transform: translateX(-50%);
+    width: 8px; height: 5px;
+    border-radius: 50% 50% 0 0;
+    background: #cc3333;
+  }
+
+  /* TREE */
+  .tree {
+    position: absolute;
+    bottom: 30%;
+  }
+  .tree-trunk { width: 12px; height: 24px; background: #7B5E3A; border-radius: 2px; margin: 0 auto; }
+  .tree-top {
+    width: 44px; height: 50px;
+    background: #3A7D44;
+    clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+    margin-left: -16px;
+  }
+  .tree-top2 {
+    width: 36px; height: 42px;
+    background: #2D6B38;
+    clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+    margin-left: -12px;
+    margin-top: -24px;
+  }
+
+  /* GROUND */
+  #ground {
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 100%; height: 32%;
+    background: #5A9E4A;
+    border-top: 5px solid #4A8E3A;
+  }
+  #grass-strip {
+    position: absolute;
+    bottom: 26%; left: 0;
+    width: 100%; height: 22px;
+    background: #6BBB55;
+  }
+
+  /* ROAD */
+  #road {
+    position: absolute;
+    bottom: 14%; left: 0;
+    width: 100%; height: 18%;
+    background: #3D3D3D;
+  }
+  #road-top-edge {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 6px;
+    background: #5C5C5C;
+  }
+  #road-bottom-edge {
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 100%; height: 6px;
+    background: #5C5C5C;
+  }
+  #road-dashes {
+    position: absolute;
+    top: 50%; left: 0;
+    width: 100%; height: 6px;
+    background: repeating-linear-gradient(
+      to right,
+      white 0px, white 50px,
+      transparent 50px, transparent 90px
+    );
+    opacity: 0.35;
+    transform: translateY(-50%);
+    animation: dashMove 0.4s linear infinite;
+  }
+  @keyframes dashMove { to { background-position: 90px 0; } }
+
+  /* SIDEWALK */
+  #sidewalk {
+    position: absolute;
+    bottom: 32%; left: 0;
+    width: 100%; height: 18px;
+    background: #C4A882;
+    border-top: 3px solid #B09070;
+  }
+
+  /* PROGRESS BAR */
+  #progress-wrap {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 7px;
+    background: rgba(0,0,0,0.2);
+    z-index: 40;
+  }
+  #progress-bar {
+    height: 100%;
+    background: linear-gradient(to right, #4DD67A, #FFD93D);
+    transition: width 0.6s ease;
+    width: 0%;
+  }
+
+  /* VEHICLE */
+  #vehicle-wrap {
+    position: absolute;
+    bottom: 15%;
+    left: -350px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 20;
+  }
+  #vehicle-emoji {
+    font-size: clamp(70px, 12vw, 110px);
+    line-height: 1;
+    filter: drop-shadow(3px 6px 8px rgba(0,0,0,0.3));
+    animation: bob 0.7s ease-in-out infinite alternate;
+  }
+  @keyframes bob {
+    from { transform: translateY(0); }
+    to   { transform: translateY(-8px); }
+  }
+  #vehicle-label {
+    margin-top: 6px;
+    background: rgba(0,0,0,0.78);
+    color: #FFD93D;
+    font-size: clamp(16px, 3vw, 22px);
+    font-weight: bold;
+    padding: 5px 22px;
+    border-radius: 25px;
+    letter-spacing: 2px;
+    border: 2.5px solid #FFD93D;
+  }
+
+  /* QUESTION BUBBLE */
+  #question-bubble {
+    position: absolute;
+    top: 2%; left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    color: #222;
+    font-size: clamp(16px, 3vw, 24px);
+    font-weight: bold;
+    padding: 14px 32px;
+    border-radius: 50px;
+    border: 4px solid #FFD93D;
+    box-shadow: 0 7px 0 #C8A800;
+    text-align: center;
+    white-space: nowrap;
+    z-index: 30;
+    max-width: 90vw;
+  }
+  #question-bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -20px; left: 50%;
+    transform: translateX(-50%);
+    border: 11px solid transparent;
+    border-top-color: #FFD93D;
+  }
+
+  /* HUD */
+  #scoreboard {
+    position: absolute;
+    top: 1.5%; left: 1.5%;
+    background: rgba(0,0,0,0.6);
+    color: white;
+    padding: 8px 20px;
+    border-radius: 25px;
+    font-size: clamp(16px, 2.5vw, 22px);
+    font-weight: bold;
+    border: 2px solid rgba(255,255,255,0.25);
+    z-index: 30;
+  }
+  #hearts {
+    position: absolute;
+    top: 1.5%; right: 1.5%;
+    font-size: clamp(20px, 3.5vw, 30px);
+    z-index: 30;
+    letter-spacing: 5px;
+  }
+  #level-tag {
+    position: absolute;
+    top: 11%; left: 1.5%;
+    background: #FFD93D;
+    color: #5C4000;
+    font-size: clamp(12px, 2vw, 16px);
+    font-weight: bold;
+    padding: 5px 16px;
+    border-radius: 25px;
+    z-index: 30;
+  }
+  #round-tag {
+    position: absolute;
+    top: 11%; right: 1.5%;
+    background: rgba(255,255,255,0.85);
+    color: #333;
+    font-size: clamp(12px, 2vw, 16px);
+    font-weight: bold;
+    padding: 5px 16px;
+    border-radius: 25px;
+    z-index: 30;
+  }
+
+  /* BUTTONS */
+  #buttons {
+    position: absolute;
+    bottom: 1%;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: clamp(16px, 4vw, 40px);
+    z-index: 30;
+    padding: 0 16px;
+  }
+  .answer-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    background: white;
+    border: 5px solid #333;
+    border-radius: 28px;
+    padding: clamp(10px,2vh,18px) clamp(18px,5vw,44px);
+    cursor: pointer;
+    box-shadow: 0 9px 0 #222;
+    transition: transform 0.08s, box-shadow 0.08s;
+    min-width: clamp(110px, 20vw, 160px);
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .answer-btn:active, .answer-btn.pressed {
+    transform: translateY(7px);
+    box-shadow: 0 2px 0 #222;
+  }
+  .btn-icon { font-size: clamp(30px, 6vw, 48px); }
+  .btn-label { font-size: clamp(14px, 2.5vw, 20px); font-weight: bold; letter-spacing: 1px; }
+
+  #btn-public  { background: #4DD67A; border-color: #1E9B4A; box-shadow: 0 9px 0 #1E9B4A; }
+  #btn-public  .btn-label { color: #0A5C28; }
+  #btn-private { background: #FF6B6B; border-color: #C73030; box-shadow: 0 9px 0 #C73030; }
+  #btn-private .btn-label { color: #6E0A0A; }
+  #btn-public:active, #btn-public.pressed   { box-shadow: 0 2px 0 #1E9B4A; }
+  #btn-private:active, #btn-private.pressed { box-shadow: 0 2px 0 #C73030; }
+
+  /* FEEDBACK */
+  #feedback {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    background: white;
+    border-radius: 32px;
+    padding: clamp(20px,4vh,36px) clamp(30px,6vw,60px);
+    text-align: center;
+    z-index: 50;
+    border: 5px solid #FFD93D;
+    box-shadow: 0 14px 0 #C8A800;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    min-width: 240px;
+    max-width: 80vw;
+  }
+  #feedback.show { transform: translate(-50%, -50%) scale(1); }
+  #feedback-icon { font-size: clamp(50px, 9vw, 72px); }
+  #feedback-text { font-size: clamp(18px, 3vw, 26px); font-weight: bold; color: #222; margin-top: 8px; }
+  #feedback-sub  { font-size: clamp(13px, 2vw, 17px); color: #555; margin-top: 6px; line-height: 1.4; }
+
+  /* CONFETTI */
+  .confetti-piece {
+    position: absolute;
+    width: 11px; height: 11px;
+    top: -20px;
+    border-radius: 3px;
+    z-index: 45;
+    pointer-events: none;
+  }
+
+  /* SHAKE */
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20%,60%  { transform: translateX(-20px); }
+    40%,80%  { transform: translateX(20px); }
+  }
+  .shaking { animation: shake 0.45s ease; }
+
+  /* START SCREEN */
+  #startscreen {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.5);
+    z-index: 60;
+  }
+  .overlay-card {
+    background: white;
+    border-radius: 32px;
+    padding: clamp(28px,5vh,50px) clamp(30px,6vw,65px);
+    text-align: center;
+    border: 6px solid #FFD93D;
+    box-shadow: 0 18px 0 #C8A800;
+    max-width: min(420px, 90vw);
+  }
+  .overlay-card h1 { font-size: clamp(24px, 5vw, 36px); color: #222; line-height: 1.2; }
+  .overlay-card h2 { font-size: clamp(22px, 4vw, 32px); color: #222; }
+  .overlay-card p  { font-size: clamp(14px, 2.5vw, 18px); color: #444; margin: 14px 0; line-height: 1.6; }
+  .key-row { display: flex; gap: 12px; margin: 12px 0; justify-content: center; }
+  .key-box {
+    flex: 1;
+    padding: 10px 8px;
+    border-radius: 16px;
+    font-size: clamp(13px, 2vw, 16px);
+    font-weight: bold;
+  }
+  .key-public  { background: #d4f7e2; color: #0A5C28; border: 2px solid #4DD67A; }
+  .key-private { background: #fde0e0; color: #6E0A0A; border: 2px solid #FF6B6B; }
+
+  .big-btn {
+    margin-top: 18px;
+    border: 5px solid #333;
+    border-radius: 24px;
+    padding: 14px 50px;
+    font-size: clamp(18px, 3vw, 24px);
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 9px 0 #333;
+    transition: transform 0.08s, box-shadow 0.08s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .big-btn:active { transform: translateY(7px); box-shadow: 0 2px 0 #333; }
+  .btn-start   { background: #FFD93D; border-color: #C8A800; box-shadow: 0 9px 0 #C8A800; color: #5C4000; }
+  .btn-start:active   { box-shadow: 0 2px 0 #C8A800; }
+  .btn-replay  { background: #4DD67A; border-color: #1E9B4A; box-shadow: 0 9px 0 #1E9B4A; color: #0A5C28; }
+  .btn-replay:active  { box-shadow: 0 2px 0 #1E9B4A; }
+
+  /* GAMEOVER */
+  #gameover {
+    position: absolute; inset: 0;
+    display: none;
+    align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.55);
+    z-index: 60;
+    flex-direction: column;
+  }
+  #stars-row { font-size: clamp(30px, 6vw, 50px); letter-spacing: 6px; margin-top: 10px; }
+
+  /* COMBO tag */
+  #combo-tag {
+    position: absolute;
+    top: 20%; left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    background: #FFD93D;
+    color: #5C4000;
+    font-size: clamp(22px, 4vw, 32px);
+    font-weight: bold;
+    padding: 8px 28px;
+    border-radius: 30px;
+    border: 4px solid #C8A800;
+    z-index: 55;
+    pointer-events: none;
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s;
+  }
+</style>
+</head>
+<body>
+<div id="game">
+  <!-- PROGRESS -->
+  <div id="progress-wrap"><div id="progress-bar"></div></div>
+
+  <!-- SKY & EFFECTS -->
+  <div id="sky"></div>
+  <div id="sun"></div>
+  <div class="ray"></div>
+
+  <!-- BUILDINGS -->
+  <div id="buildings"></div>
+
+  <!-- TREES (placed by JS) -->
+
+  <!-- GROUND -->
+  <div id="ground"></div>
+  <div id="grass-strip"></div>
+  <div id="road">
+    <div id="road-top-edge"></div>
+    <div id="road-bottom-edge"></div>
+    <div id="road-dashes"></div>
+  </div>
+  <div id="sidewalk"></div>
+
+  <!-- VEHICLE -->
+  <div id="vehicle-wrap">
+    <div id="vehicle-emoji">🚌</div>
+    <div id="vehicle-label">BUS</div>
+  </div>
+
+  <!-- HUD -->
+  <div id="question-bubble">Sorting time! 🎮</div>
+  <div id="scoreboard">⭐ 0</div>
+  <div id="hearts">❤️❤️❤️</div>
+  <div id="level-tag">Level 1</div>
+  <div id="round-tag">1 / 10</div>
+
+  <!-- FEEDBACK -->
+  <div id="feedback">
+    <div id="feedback-icon">🎉</div>
+    <div id="feedback-text">Correct!</div>
+    <div id="feedback-sub"></div>
+  </div>
+
+  <!-- COMBO -->
+  <div id="combo-tag">🔥 COMBO x2!</div>
+
+  <!-- BUTTONS -->
+  <div id="buttons">
+    <button id="btn-public" class="answer-btn" onclick="answer('public')">
+      <span class="btn-icon">🚌</span>
+      <span class="btn-label">PUBLIC</span>
+    </button>
+    <button id="btn-private" class="answer-btn" onclick="answer('private')">
+      <span class="btn-icon">🚗</span>
+      <span class="btn-label">PRIVATE</span>
+    </button>
+  </div>
+
+  <!-- START SCREEN -->
+  <div id="startscreen">
+    <div class="overlay-card">
+      <h1>🏙️ City Transport Hero! 🚌</h1>
+      <p>Sort the vehicles into the right group!</p>
+      <div class="key-row">
+        <div class="key-box key-public">🚌 PUBLIC<br><small>Everyone can use it!</small></div>
+        <div class="key-box key-private">🚗 PRIVATE<br><small>Just for your family!</small></div>
+      </div>
+      <button class="big-btn btn-start" onclick="startGame()">LET'S GO! 🎉</button>
+    </div>
+  </div>
+
+  <!-- GAME OVER -->
+  <div id="gameover">
+    <div class="overlay-card">
+      <h2 id="gameover-title">🎊 Amazing! 🎊</h2>
+      <div id="stars-row">⭐⭐⭐</div>
+      <p id="gameover-score"></p>
+      <p id="gameover-msg"></p>
+      <button class="big-btn btn-replay" onclick="resetGame()">PLAY AGAIN 🔄</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const vehicles = [
+  { emoji: '🚌', name: 'Bus', type: 'public',   fact: 'A bus carries many people at once! 🚌' },
+  { emoji: '🚋', name: 'Tram', type: 'public',   fact: 'Trams run on rails in the city! 🚋' },
+  { emoji: '🚇', name: 'Metro', type: 'public',   fact: 'The metro goes underground! 🚇' },
+  { emoji: '✈️', name: 'Airplane', type: 'public',   fact: 'Planes carry hundreds of people! ✈️' },
+  { emoji: '⛴️', name: 'Ferry', type: 'public',   fact: 'Ferries carry people across water! ⛴️' },
+  { emoji: '🚎', name: 'Trolleybus', type: 'public',   fact: 'Trolleys use electricity from wires! 🚎' },
+  { emoji: '🚐', name: 'Minibus', type: 'public',   fact: 'Minibuses take groups of people! 🚐' },
+  { emoji: '🚂', name: 'Train', type: 'public',   fact: 'Trains connect cities together! 🚂' },
+  { emoji: '🚁', name: 'Helicopter', type: 'public',   fact: 'Some helicopters are for everyone! 🚁' },
+  { emoji: '🚗', name: 'Car', type: 'private',  fact: 'A car belongs to one family! 🚗' },
+  { emoji: '🏍️', name: 'Motorbike', type: 'private',  fact: 'A motorbike belongs to its owner! 🏍️' },
+  { emoji: '🛵', name: 'Scooter', type: 'private',  fact: 'Scooters are personal vehicles! 🛵' },
+  { emoji: '🚲', name: 'Bicycle', type: 'private',  fact: 'A bicycle belongs to one person! 🚲' },
+  { emoji: '⛵', name: 'Sailboat', type: 'private',  fact: 'Sailboats belong to their owner! ⛵' },
+  { emoji: '🚚', name: 'Truck', type: 'private',  fact: 'Trucks carry a family\'s goods! 🚚' },
+  { emoji: '🛺', name: 'Tuk-tuk', type: 'private',  fact: 'Tuk-tuks are personal vehicles! 🛺' },
+];
+
+let score = 0, hearts = 3, round = 0, combo = 0;
+let current = null, busy = false, gameRunning = false;
+let used = [];
+const TOTAL_ROUNDS = 10;
+
+const vWrap    = document.getElementById('vehicle-wrap');
+const vEmoji   = document.getElementById('vehicle-emoji');
+const vLabel   = document.getElementById('vehicle-label');
+const bubble   = document.getElementById('question-bubble');
+const scoreEl  = document.getElementById('scoreboard');
+const heartsEl = document.getElementById('hearts');
+const levelEl  = document.getElementById('level-tag');
+const roundEl  = document.getElementById('round-tag');
+const progress = document.getElementById('progress-bar');
+const feedback = document.getElementById('feedback');
+const fIcon    = document.getElementById('feedback-icon');
+const fText    = document.getElementById('feedback-text');
+const fSub     = document.getElementById('feedback-sub');
+const comboTag = document.getElementById('combo-tag');
+const gameover = document.getElementById('gameover');
+const startscreen = document.getElementById('startscreen');
+
+/* === SCENE BUILDING === */
+function makeClouds() {
+  const sky = document.getElementById('sky');
+  [{w:100,h:34,top:'8%',dur:32,del:0},{w:130,h:42,top:'18%',dur:45,del:-15},
+   {w:75,h:25,top:'12%',dur:25,del:-8},{w:110,h:36,top:'28%',dur:38,del:-22},
+   {w:90,h:30,top:'35%',dur:55,del:-30}].forEach(c => {
+    const el = document.createElement('div');
+    el.className = 'cloud';
+    el.style.cssText = `width:${c.w}px;height:${c.h}px;top:${c.top};
+      animation:cloudMove ${c.dur}s ${c.del}s linear infinite;`;
+    sky.appendChild(el);
+  });
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes cloudMove {
+      from { transform: translateX(110vw); }
+      to   { transform: translateX(-200px); }
+    }`;
+  document.head.appendChild(style);
+}
+
+function makeBuildings() {
+  const wrap = document.getElementById('buildings');
+  const cfgs = [
+    {l:'1%',w:62,h:120,color:'#1A4A7A',wins:4},
+    {l:'10%',w:52,h:90,color:'#7A2A1A',wins:3},
+    {l:'18%',w:70,h:145,color:'#1A7A4A',wins:5},
+    {l:'28%',w:56,h:100,color:'#4A1A7A',wins:3},
+    {l:'36%',w:68,h:130,color:'#7A6A1A',wins:4},
+    {l:'46%',w:50,h:85,color:'#1A5A7A',wins:3},
+    {l:'54%',w:80,h:155,color:'#7A1A4A',wins:5},
+    {l:'64%',w:60,h:110,color:'#2A7A1A',wins:4},
+    {l:'73%',w:72,h:135,color:'#1A3A7A',wins:4},
+    {l:'83%',w:55,h:95,color:'#7A4A1A',wins:3},
+    {l:'90%',w:66,h:125,color:'#3A1A7A',wins:4},
+  ];
+  cfgs.forEach((cfg, i) => {
+    const b = document.createElement('div');
+    b.className = 'building';
+    b.style.cssText = `left:${cfg.l};width:${cfg.w}px;height:${cfg.h}px;background:${cfg.color};`;
+    if (i % 3 === 0) {
+      const ant = document.createElement('div');
+      ant.className = 'antenna';
+      b.appendChild(ant);
+    }
+    for (let r = 0; r < cfg.wins; r++) {
+      const row = document.createElement('div');
+      row.className = 'b-window-row';
+      for (let j = 0; j < 2; j++) {
+        const w = document.createElement('div');
+        w.className = 'b-win' + (Math.random() > 0.4 ? '' : ' off');
+        row.appendChild(w);
+      }
+      b.appendChild(row);
+    }
+    wrap.appendChild(b);
+  });
+}
+
+function makeTrees() {
+  const game = document.getElementById('game');
+  [5, 15, 40, 55, 70, 88].forEach(leftPct => {
+    const t = document.createElement('div');
+    t.className = 'tree';
+    t.style.left = leftPct + '%';
+    t.innerHTML = `<div class="tree-top2"></div><div class="tree-top"></div><div class="tree-trunk"></div>`;
+    game.appendChild(t);
+  });
+}
+
+/* === GAME LOGIC === */
+function getLevel() {
+  if (round < 4) return 1;
+  if (round < 7) return 2;
+  return 3;
+}
+
+function pickVehicle() {
+  let pool = vehicles.filter(v => !used.includes(v.name));
+  if (!pool.length) { used = []; pool = [...vehicles]; }
+  const v = pool[Math.floor(Math.random() * pool.length)];
+  used.push(v.name);
+  return v;
+}
+
+function spawn() {
+  if (!gameRunning) return;
+  current = pickVehicle();
+  vEmoji.textContent = current.emoji;
+  vLabel.textContent = current.name.toUpperCase();
+  bubble.textContent = `Is the ${current.name} Public or Private?`;
+  bubble.style.borderColor = '#FFD93D';
+  bubble.style.boxShadow = '0 7px 0 #C8A800';
+
+  vWrap.style.transition = 'none';
+  vWrap.style.left = '-350px';
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    vWrap.style.transition = 'left 0.9s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+    vWrap.style.left = 'calc(50% - 60px)';
+  }));
+  busy = false;
+}
+
+function answer(choice) {
+  if (busy || !gameRunning || !current) return;
+  busy = true;
+
+  if (choice === current.type) {
+    // CORRECT
+    combo++;
+    const pts = 10 + (getLevel() - 1) * 3 + (combo >= 3 ? 5 : 0);
+    score += pts;
+    round++;
+    scoreEl.textContent = '⭐ ' + score;
+    levelEl.textContent = 'Level ' + getLevel();
+    roundEl.textContent = round + ' / ' + TOTAL_ROUNDS;
+    progress.style.width = (round / TOTAL_ROUNDS * 100) + '%';
+
+    if (combo >= 2) showCombo(combo);
+    showFeedback(true, current.type, current.fact);
+    confetti(25);
+    driveOff(true);
+
+    if (round >= TOTAL_ROUNDS) { setTimeout(showGameOver, 2200); }
+    else { setTimeout(() => { hideFeedback(); spawn(); }, 2000); }
+  } else {
+    // WRONG
+    combo = 0;
+    hearts--;
+    heartsEl.textContent = '❤️'.repeat(Math.max(hearts, 0)) + '🖤'.repeat(Math.max(3 - hearts, 0));
+    showFeedback(false, current.type, current.fact);
+    shakeBubble();
+    shakeVehicle();
+
+    if (hearts <= 0) {
+      hearts = 3;
+      round++;
+      heartsEl.textContent = '❤️❤️❤️';
+      roundEl.textContent = round + ' / ' + TOTAL_ROUNDS;
+      progress.style.width = (round / TOTAL_ROUNDS * 100) + '%';
+      driveOff(false);
+      if (round >= TOTAL_ROUNDS) { setTimeout(showGameOver, 2200); }
+      else { setTimeout(() => { hideFeedback(); spawn(); }, 2000); }
+    } else {
+      setTimeout(() => { hideFeedback(); busy = false; }, 1800);
+    }
+  }
+}
+
+function driveOff(correct) {
+  vWrap.style.transition = 'left 0.7s ease-in';
+  vWrap.style.left = correct ? '120%' : '-350px';
+}
+
+function showFeedback(correct, type, fact) {
+  fIcon.textContent = correct ? '🎉' : '🤔';
+  const which = type === 'public' ? 'PUBLIC 🚌' : 'PRIVATE 🚗';
+  fText.textContent = correct ? `✅ Yes! It's ${which}!` : `❌ It's actually ${which}!`;
+  fSub.textContent = fact;
+  feedback.style.borderColor = correct ? '#4DD67A' : '#FF6B6B';
+  feedback.style.boxShadow = correct ? '0 14px 0 #1E9B4A' : '0 14px 0 #C73030';
+  feedback.classList.add('show');
+}
+function hideFeedback() { feedback.classList.remove('show'); }
+
+function showCombo(n) {
+  comboTag.textContent = n >= 5 ? `🔥🔥 SUPER COMBO x${n}!!` : `🔥 COMBO x${n}!`;
+  comboTag.style.transform = 'translate(-50%, -50%) scale(1)';
+  comboTag.style.opacity = '1';
+  setTimeout(() => {
+    comboTag.style.opacity = '0';
+    setTimeout(() => { comboTag.style.transform = 'translate(-50%, -50%) scale(0)'; comboTag.style.opacity = '1'; }, 400);
+  }, 1000);
+}
+
+function shakeVehicle() {
+  vWrap.classList.add('shaking');
+  setTimeout(() => vWrap.classList.remove('shaking'), 450);
+}
+function shakeBubble() {
+  bubble.style.borderColor = '#FF6B6B';
+  bubble.style.boxShadow = '0 7px 0 #C73030';
+}
+
+function confetti(n) {
+  const colors = ['#FFD93D','#4DD67A','#FF6B6B','#74B9FF','#A29BFE','#FD79A8','#55EFC4','#FDCB6E'];
+  const game = document.getElementById('game');
+  for (let i = 0; i < n; i++) {
+    const p = document.createElement('div');
+    p.className = 'confetti-piece';
+    const dur = 0.8 + Math.random() * 1.4;
+    const isCircle = Math.random() > 0.5;
+    p.style.cssText = `
+      left:${10 + Math.random() * 80}%;
+      background:${colors[Math.floor(Math.random() * colors.length)]};
+      animation:confettiFall ${dur}s ${Math.random() * 0.4}s linear forwards;
+      border-radius:${isCircle ? '50%' : '2px'};
+      width:${8 + Math.random() * 8}px;height:${8 + Math.random() * 8}px;
+    `;
+    game.appendChild(p);
+    setTimeout(() => p.remove(), (dur + 0.5) * 1000);
+  }
+}
+
+const confettiStyle = document.createElement('style');
+confettiStyle.textContent = `
+  @keyframes confettiFall {
+    0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+  }`;
+document.head.appendChild(confettiStyle);
+
+function showGameOver() {
+  hideFeedback();
+  gameRunning = false;
+  const maxScore = TOTAL_ROUNDS * 15;
+  const pct = score / maxScore;
+  const stars = pct >= 0.85 ? '⭐⭐⭐' : pct >= 0.55 ? '⭐⭐' : '⭐';
+  document.getElementById('stars-row').textContent = stars;
+  document.getElementById('gameover-score').textContent = `You scored ${score} points!`;
+  document.getElementById('gameover-title').textContent =
+    pct >= 0.85 ? '🏆 Transport Master!' :
+    pct >= 0.55 ? '🌟 Great Job!' : '😊 Good Try!';
+  document.getElementById('gameover-msg').textContent =
+    pct >= 0.85 ? 'You know all the vehicles!' :
+    pct >= 0.55 ? 'Keep practising, you\'re doing great!' :
+    'Play again and learn more vehicles!';
+  gameover.style.display = 'flex';
+  confetti(35);
+  setTimeout(() => confetti(30), 500);
+}
+
+function startGame() {
+  startscreen.style.display = 'none';
+  gameRunning = true;
+  spawn();
+}
+
+function resetGame() {
+  score = 0; hearts = 3; round = 0; combo = 0;
+  current = null; busy = false; used = [];
+  scoreEl.textContent = '⭐ 0';
+  heartsEl.textContent = '❤️❤️❤️';
+  levelEl.textContent = 'Level 1';
+  roundEl.textContent = '1 / ' + TOTAL_ROUNDS;
+  progress.style.width = '0%';
+  gameover.style.display = 'none';
+  gameRunning = true;
+  spawn();
+}
+
+/* === KEYBOARD SUPPORT === */
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft' || e.key === 'q') answer('public');
+  if (e.key === 'ArrowRight' || e.key === 'e') answer('private');
+});
+
+/* === INIT === */
+makeClouds();
+makeBuildings();
+makeTrees();
+</script>
+</body>
+</html>
